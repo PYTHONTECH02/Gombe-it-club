@@ -1,0 +1,76 @@
+bro today i want we build but first plan for this project ask me questions in refernce to my plan below quote that i am just updating a website you can decide to split it but
+you can split ,change file structure and arrangement but make it in a way that its very easy to host on the free hist infinoty free 
+the website scrutinize through it all
+It has problems of data syncing so i think i will use supabase 
+i want to maintain their content but ammending the way the cyber page and coding page keep data i want their data to sync so each student will have to create an account ryt
+Then i want each student to create an account where progress will be saved with a password for each account created and email
+We shall have 2 signin options 
+google signin (no password) and email+ password
+
+
+
+Yh login should be for the whole site 
+Ofcourse the reset password will be there
+
+
+
+
+Do u realize that the gaming and announcement pages are also editable by everyone make it editable by admins so 
+
+
+So how are we doing it for the admin accounts 
+Because there is need for multiple admin accounts
+
+
+The role hierarchy would be:
+👑 Super Admin — 1 account, manages who is admin
+🛡️ Admin — Multiple accounts, can edit Announcements & Gaming
+👤 Student — Everyone else, read-only on those pages
+
+
+Noted! ✅
+Super Admin email: hpro453176@gmail.com
+So whenever that email signs up on the site, it automatically gets 👑 Super Admin role — no extra steps needed.
+
+So Members  Events and Projects pages are also admin-editable! ✅
+
+so i am sending u the supabase details like anon key when you ask for them 
+
+othink u we shall use this not so
+
+
+
+Supabase URL
+https://mrlftterlytsjiczkcgy.supabase.co
+Supabase Anon Key
+sb_publishable_CUnnF6X8Hi3NkPq_XtiKiA_TyhDWQHH
+Google Client ID
+282622783618-gcdnu3ek0sqg61r3vlj8ubvmot04iofd.apps.googleusercontent.com
+Super Admin Email
+hpro453176@gmail.com
+Host Domain
+https://techiteasy.kesug.com
+
+Make ur plan also but put in mind that i want that site easy to host on my free hosting  infinity free (upload to deploy)
+
+👤 Updated Account Management Page
+What it will include:
+Profile Section
+Upload a profile picture / avatar icon (stored in Supabase Storage)
+Display current avatar in nav next to name
+Full name (editable)
+Email (read-only)
+Role badge (read-only)
+Security Section
+Change password
+Reset password via email
+Learning Progress Section
+Coding lessons completed
+Cyber lessons completed
+Exam scores and grades
+Session Section
+See when account was created
+See last login time
+Logout button (big and clear)
+Danger Zone
+Delete account option (with confirmation)
