@@ -11,7 +11,7 @@ export default function Announcements() {
   const [loading, setLoading] = useState(true);
   
   const [showModal, setShowModal] = useState(false);
-  const [formData, setFormData] = useState({ title: '', body: '', tag: 'INFO' });
+  const [formData, setFormData] = useState({ title: '', body: '', tag: 'INFO', event_date: '', event_time: '', venue: '' });
 
   useEffect(() => {
     fetchNews();
@@ -32,16 +32,21 @@ export default function Announcements() {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const { error } = await supabase.from('announcements').insert([{
+      const payload = {
         title: formData.title,
-        body: formData.body,
+        body: [
+          formData.body,
+          formData.event_date ? `\nSchedule: ${formData.event_date}${formData.event_time ? ` at ${formData.event_time}` : ''}` : '',
+          formData.venue ? `Venue: ${formData.venue}` : '',
+        ].filter(Boolean).join('\n'),
         tag: formData.tag,
         created_at: new Date().toISOString()
-      }]);
+      };
+      const { error } = await supabase.from('announcements').insert([payload]);
       if (error) throw error;
       toast({ title: 'Announcement posted' });
       setShowModal(false);
-      setFormData({ title: '', body: '', tag: 'INFO' });
+      setFormData({ title: '', body: '', tag: 'INFO', event_date: '', event_time: '', venue: '' });
       fetchNews();
     } catch (e: any) {
       toast({ variant: 'destructive', title: 'Error', description: e.message });
@@ -77,7 +82,7 @@ export default function Announcements() {
           <h1 className="font-display text-6xl md:text-8xl leading-none">CLUB NEWS</h1>
           {isAdmin && (
             <button onClick={() => setShowModal(true)} className="bg-[#FFE500] text-[#0A0A0A] px-6 py-2 font-bold uppercase neubrutalism-box-sm border-[3px] border-[#0A0A0A]">
-              + Post News
+              + Admin Post
             </button>
           )}
         </div>
@@ -147,6 +152,21 @@ export default function Announcements() {
               <div>
                 <label className="font-bold uppercase text-xs mb-1 block">Message</label>
                 <textarea required value={formData.body} onChange={e=>setFormData({...formData, body: e.target.value})} className="w-full border-[3px] border-[#0A0A0A] p-2 min-h-[150px]" />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div>
+                  <label className="font-bold uppercase text-xs mb-1 block">Schedule Date</label>
+                  <input type="date" value={formData.event_date} onChange={e=>setFormData({...formData, event_date: e.target.value})} className="w-full border-[3px] border-[#0A0A0A] p-2" />
+                </div>
+                <div>
+                  <label className="font-bold uppercase text-xs mb-1 block">Time</label>
+                  <input type="time" value={formData.event_time} onChange={e=>setFormData({...formData, event_time: e.target.value})} className="w-full border-[3px] border-[#0A0A0A] p-2" />
+                </div>
+                <div>
+                  <label className="font-bold uppercase text-xs mb-1 block">Venue</label>
+                  <input value={formData.venue} onChange={e=>setFormData({...formData, venue: e.target.value})} className="w-full border-[3px] border-[#0A0A0A] p-2" placeholder="ICT Lab" />
+                </div>
               </div>
 
               <div className="flex gap-4 mt-6">

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
-import { CODING_TRACKS, MOCK_QUIZ_QUESTIONS, MOCK_EXAM_QUESTIONS } from '@/lib/bootcamp-data';
+import { CODING_TRACKS, CODING_EXAM_QUESTIONS, getCodingLessonQuiz } from '@/lib/bootcamp-data';
 import { useToast } from '@/hooks/use-toast';
 import { Link } from 'wouter';
 import { QuizView } from '@/components/QuizView';
@@ -16,6 +16,14 @@ export default function Coding() {
   const [activeLesson, setActiveLesson] = useState<{ trackId: string; lessonId: number } | null>(null);
   const [activeExam, setActiveExam] = useState<{ trackId: string } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [playgroundCode, setPlaygroundCode] = useState(`const name = "Gombe ICT Club";
+const skills = ["HTML", "CSS", "JavaScript"];
+
+console.log("Welcome to " + name);
+skills.forEach((skill, index) => {
+  console.log((index + 1) + ". Practice " + skill);
+});`);
+  const [playgroundOutput, setPlaygroundOutput] = useState('Click Run Code to see output here.');
 
   useEffect(() => {
     async function loadData() {
@@ -67,10 +75,26 @@ export default function Coding() {
     } catch (e) { console.error(e); }
   };
 
+  const runPlaygroundCode = () => {
+    const logs: string[] = [];
+    const safeConsole = {
+      log: (...args: unknown[]) => logs.push(args.map(String).join(' ')),
+      warn: (...args: unknown[]) => logs.push(`Warning: ${args.map(String).join(' ')}`),
+      error: (...args: unknown[]) => logs.push(`Error: ${args.map(String).join(' ')}`),
+    };
+
+    try {
+      Function('console', `"use strict";\n${playgroundCode}`)(safeConsole);
+      setPlaygroundOutput(logs.length ? logs.join('\n') : 'Code ran successfully with no console output.');
+    } catch (error: any) {
+      setPlaygroundOutput(`Error: ${error.message}`);
+    }
+  };
+
   if (activeLesson) {
     return (
       <QuizView
-        questions={MOCK_QUIZ_QUESTIONS}
+        questions={getCodingLessonQuiz(activeLesson.trackId, activeLesson.lessonId)}
         passMark={4}
         bgColor="#030312"
         accentColor="#2563FF"
@@ -82,7 +106,7 @@ export default function Coding() {
   if (activeExam) {
     return (
       <ExamView
-        questions={MOCK_EXAM_QUESTIONS}
+        questions={CODING_EXAM_QUESTIONS}
         durationSeconds={300}
         accentColor="#2563FF"
         onComplete={(score) => handleExamComplete(activeExam.trackId, score)}
@@ -105,6 +129,33 @@ export default function Coding() {
               <Link href="/auth" className="bg-[#2563FF] text-white px-4 py-2 font-bold uppercase block text-center border-[2px] border-[#0A0A0A]">Sign In</Link>
             </div>
           )}
+        </div>
+
+        <div className="mb-16 bg-[#0A0A0A] border-[3px] border-[#2563FF] p-5 md:p-6">
+          <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-4">
+            <div>
+              <h2 className="font-display text-4xl text-[#FFE500]">CODE LAB</h2>
+              <p className="text-gray-400 font-bold">Practice JavaScript, use console.log(), then run it in the browser.</p>
+            </div>
+            <button
+              onClick={runPlaygroundCode}
+              className="bg-[#FFE500] text-[#0A0A0A] px-6 py-3 border-[3px] border-[#0A0A0A] font-bold uppercase hover:bg-white transition-colors"
+            >
+              Run Code
+            </button>
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <textarea
+              value={playgroundCode}
+              onChange={(e) => setPlaygroundCode(e.target.value)}
+              spellCheck={false}
+              className="min-h-[280px] w-full resize-y bg-[#030312] text-[#E7F0FF] border-[3px] border-gray-800 p-4 font-mono text-sm leading-6 focus:outline-none focus:border-[#2563FF]"
+              aria-label="JavaScript coding playground"
+            />
+            <pre className="min-h-[280px] whitespace-pre-wrap bg-[#030312] text-[#00E676] border-[3px] border-gray-800 p-4 font-mono text-sm leading-6 overflow-auto">
+              {playgroundOutput}
+            </pre>
+          </div>
         </div>
 
         <div className="space-y-16">

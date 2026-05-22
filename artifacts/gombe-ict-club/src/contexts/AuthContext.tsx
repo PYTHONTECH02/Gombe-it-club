@@ -87,6 +87,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           
         if (!insertError && newProfile) {
           data = newProfile;
+        } else {
+          data = {
+            id: currentUser.id,
+            email: currentUser.email || '',
+            role: newRole,
+            full_name: currentUser.user_metadata?.full_name || '',
+            avatar_url: currentUser.user_metadata?.avatar_url || '',
+            created_at: new Date().toISOString(),
+          };
         }
       }
 
