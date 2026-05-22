@@ -17,6 +17,9 @@ export default function Gaming() {
   const [title, setTitle] = useState('');
   const [time, setTime] = useState('');
   const [gameConsole, setGameConsole] = useState<'ps4'|'ps5'>('ps4');
+  const [sessionType, setSessionType] = useState('Tournament');
+  const [venue, setVenue] = useState('');
+  const [details, setDetails] = useState('');
 
   useEffect(() => {
     fetchSessions();
@@ -44,8 +47,8 @@ export default function Gaming() {
         day,
         month,
         year: new Date().getFullYear().toString(),
-        title,
-        time
+        title: `${title} | ${sessionType}`,
+        time: `${time}${venue ? ` | Venue: ${venue}` : ''}${details ? ` | ${details}` : ''}`
       }]).select().single();
       
       if (error) throw error;
@@ -53,7 +56,7 @@ export default function Gaming() {
       setShowModal(false);
       toast({ title: 'Session Added' });
       // Reset
-      setDay(''); setMonth(''); setTitle(''); setTime('');
+      setDay(''); setMonth(''); setTitle(''); setTime(''); setVenue(''); setDetails(''); setSessionType('Tournament');
     } catch (e: any) {
       toast({ variant: 'destructive', title: 'Error', description: e.message });
     }
@@ -170,6 +173,22 @@ export default function Gaming() {
                 <label className="font-bold uppercase text-sm mb-1 block">Game Title</label>
                 <input required value={title} onChange={e=>setTitle(e.target.value)} className="w-full border-[3px] border-[#0A0A0A] p-2 font-bold" placeholder="FIFA 24 Tournament" />
               </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="font-bold uppercase text-sm mb-1 block">Session Type</label>
+                  <select value={sessionType} onChange={e=>setSessionType(e.target.value)} className="w-full border-[3px] border-[#0A0A0A] p-2 font-bold bg-white">
+                    <option>Tournament</option>
+                    <option>Training</option>
+                    <option>Free Play</option>
+                    <option>Challenge Match</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="font-bold uppercase text-sm mb-1 block">Venue</label>
+                  <input required value={venue} onChange={e=>setVenue(e.target.value)} className="w-full border-[3px] border-[#0A0A0A] p-2 font-bold" placeholder="ICT Lab" />
+                </div>
+              </div>
               
               <div>
                 <label className="font-bold uppercase text-sm mb-1 block">Time</label>
@@ -182,6 +201,11 @@ export default function Gaming() {
                   <option value="ps4">PS4</option>
                   <option value="ps5">PS5</option>
                 </select>
+              </div>
+
+              <div>
+                <label className="font-bold uppercase text-sm mb-1 block">Session Details</label>
+                <textarea value={details} onChange={e=>setDetails(e.target.value)} className="w-full border-[3px] border-[#0A0A0A] p-2 font-bold min-h-[80px]" placeholder="Controller rules, teams, entry limit, or prize details" />
               </div>
               
               <button type="submit" className="w-full bg-[#C44DFF] text-[#0A0A0A] font-display text-2xl py-3 border-[3px] border-[#0A0A0A] hover:bg-[#FFE500] mt-4 transition-colors">

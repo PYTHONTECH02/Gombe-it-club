@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
-import { CYBER_TRACKS, MOCK_QUIZ_QUESTIONS, MOCK_EXAM_QUESTIONS } from '@/lib/bootcamp-data';
+import { CYBER_TRACKS, CYBER_EXAM_QUESTIONS, getCyberLessonQuiz } from '@/lib/bootcamp-data';
 import { useToast } from '@/hooks/use-toast';
 import { Link } from 'wouter';
 import { QuizView } from '@/components/QuizView';
@@ -70,7 +70,7 @@ export default function Cyber() {
   if (activeLesson) {
     return (
       <QuizView
-        questions={MOCK_QUIZ_QUESTIONS}
+        questions={getCyberLessonQuiz(activeLesson.trackId, activeLesson.lessonId)}
         passMark={4}
         bgColor="#030d03"
         accentColor="#00E676"
@@ -82,7 +82,7 @@ export default function Cyber() {
   if (activeExam) {
     return (
       <ExamView
-        questions={MOCK_EXAM_QUESTIONS}
+        questions={CYBER_EXAM_QUESTIONS}
         durationSeconds={300}
         accentColor="#00E676"
         onComplete={(score) => handleExamComplete(activeExam.trackId, score)}

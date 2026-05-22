@@ -380,10 +380,18 @@ export default function Account() {
         )}
 
         {/* Admin Info Panel (for admins who are not super_admin) */}
-        {role === 'admin' && (
+        {(role === 'admin' || role === 'super_admin') && (
           <div className="bg-[#FFE500] border-[3px] border-[#0A0A0A] neubrutalism-box p-6">
             <h2 className="font-display text-3xl mb-2 text-[#0A0A0A]">ADMIN ACCESS</h2>
-            <p className="font-bold text-[#0A0A0A]">You have admin privileges. You can add/delete gaming sessions, post announcements, and manage member listings from their respective pages.</p>
+            <p className="font-bold text-[#0A0A0A] mb-4">You are signed in with admin privileges. Use these controls to manage club updates and scheduled activities.</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <button onClick={() => setLocation('/announcements')} className="bg-white border-[3px] border-[#0A0A0A] p-4 text-left font-bold uppercase hover:bg-[#0A0A0A] hover:text-white transition-colors">
+                Manage announcements and schedules
+              </button>
+              <button onClick={() => setLocation('/gaming')} className="bg-white border-[3px] border-[#0A0A0A] p-4 text-left font-bold uppercase hover:bg-[#0A0A0A] hover:text-white transition-colors">
+                Manage gaming sessions
+              </button>
+            </div>
           </div>
         )}
 
