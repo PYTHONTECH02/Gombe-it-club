@@ -27,6 +27,22 @@ const AuthContext = createContext<AuthContextType>({
   loading: true,
 });
 
+const SUPER_ADMIN_EMAIL = import.meta.env.VITE_SUPER_ADMIN_EMAIL || 'hpro453176@gmail.com';
+
+// Build a fallback profile from the Supabase user object alone
+// so the Account page always renders even if the profiles table is missing
+function buildFallbackProfile(u: User): Profile {
+  const role: Role = u.email === SUPER_ADMIN_EMAIL ? 'super_admin' : 'student';
+  return {
+    id: u.id,
+    email: u.email ?? '',
+    full_name: u.user_metadata?.full_name || null,
+    role,
+    avatar_url: u.user_metadata?.avatar_url || null,
+    created_at: u.created_at,
+  };
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -34,21 +50,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check active sessions and sets the user
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        fetchProfile(session.user);
+      const u = session?.user ?? null;
+      setUser(u);
+      if (u) {
+        fetchProfile(u);
       } else {
         setLoading(false);
       }
     });
 
-    // Listen for changes on auth state (logged in, signed out, etc.)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        await fetchProfile(session.user);
+      const u = session?.user ?? null;
+      setUser(u);
+      if (u) {
+        await fetchProfile(u);
       } else {
         setProfile(null);
         setRole(null);
@@ -61,41 +77,53 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const fetchProfile = async (currentUser: User) => {
     try {
-      let { data, error } = await supabase
+      // Always set a fallback immediately so the page never hangs
+      const fallback = buildFallbackProfile(currentUser);
+      setProfile(fallback);
+      setRole(fallback.role);
+
+      // Then try to get the real profile from Supabase
+      const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', currentUser.id)
         .single();
 
-      if (error || !data) {
-        // Create profile if doesn't exist
-        const newRole: Role = currentUser.email === 'hpro453176@gmail.com' ? 'super_admin' : 'student';
-        
-        const { data: newProfile, error: insertError } = await supabase
-          .from('profiles')
-          .insert([
-            { 
-              id: currentUser.id, 
+      if (error) {
+        // Table might not exist yet — try to create the profile row
+        if (error.code === 'PGRST116' || error.code === '42P01') {
+          // Row not found or table doesn't exist — stick with fallback
+          console.warn('profiles table missing or row not found — using fallback profile');
+        } else {
+          // Try inserting a new profile row
+          const { data: newProfile } = await supabase
+            .from('profiles')
+            .insert([{
+              id: currentUser.id,
               email: currentUser.email,
-              role: newRole,
+              role: fallback.role,
               full_name: currentUser.user_metadata?.full_name || '',
-              avatar_url: currentUser.user_metadata?.avatar_url || ''
-            }
-          ])
-          .select()
-          .single();
-          
-        if (!insertError && newProfile) {
-          data = newProfile;
-        }
-      }
+              avatar_url: currentUser.user_metadata?.avatar_url || '',
+            }])
+            .select()
+            .single();
 
-      if (data) {
+          if (newProfile) {
+            setProfile(newProfile as Profile);
+            setRole(newProfile.role as Role);
+          }
+        }
+      } else if (data) {
+        // Got real profile — use it (may have admin role assigned by super admin)
         setProfile(data as Profile);
         setRole(data.role as Role);
       }
     } catch (err) {
-      console.error('Error fetching profile:', err);
+      console.error('fetchProfile error:', err);
+      // Always fall back gracefully — never leave page loading forever
+      const fallback = buildFallbackProfile(currentUser);
+      setProfile(fallback);
+      setRole(fallback.role);
     } finally {
       setLoading(false);
     }
@@ -108,6 +136,4 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
-export const useAuth = () => {
-  return useContext(AuthContext);
-};
+export const useAuth = () => useContext(AuthContext);

@@ -1,12 +1,58 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
-import { CYBER_TRACKS, MOCK_QUIZ_QUESTIONS, MOCK_EXAM_QUESTIONS } from '@/lib/bootcamp-data';
+import { CYBER_TRACKS, CYBER_QUIZ_QUESTIONS, CYBER_EXAM_QUESTIONS, CYBER_LESSON_NOTES } from '@/lib/bootcamp-data';
 import { useToast } from '@/hooks/use-toast';
 import { Link } from 'wouter';
 import { QuizView } from '@/components/QuizView';
 import { ExamView } from '@/components/ExamView';
 
+// ── Lesson Notes Modal ────────────────────────────────────────────────────────
+function LessonNotesModal({ notes, onStartQuiz, onClose }: {
+  notes: { title: string; content: string[] };
+  onStartQuiz: () => void;
+  onClose: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
+      <div className="bg-[#030d03] border-[3px] border-[#00E676] w-full max-w-2xl">
+        <div className="flex items-center justify-between p-6 border-b-[3px] border-[#00E676]/30">
+          <h2 className="font-display text-2xl text-[#00E676]">📚 LESSON NOTES</h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-white font-bold text-xl">✕</button>
+        </div>
+        <div className="p-6 space-y-4">
+          <h3 className="font-bold text-white text-xl">{notes.title}</h3>
+          <div className="space-y-3">
+            {notes.content.map((point, i) => (
+              <div key={i} className="flex gap-3 bg-[#0A1A0A] border border-[#00E676]/20 p-4 rounded">
+                <p className="text-gray-200 text-sm leading-relaxed">{point}</p>
+              </div>
+            ))}
+          </div>
+          <div className="bg-[#00E676]/10 border-[2px] border-[#00E676] p-4 mt-4">
+            <p className="text-[#00E676] font-bold text-sm">🔐 Study these notes carefully — the quiz questions come directly from this content!</p>
+          </div>
+        </div>
+        <div className="p-6 pt-0 flex gap-3">
+          <button
+            onClick={onClose}
+            className="flex-1 py-3 font-bold uppercase border-[3px] border-gray-600 text-gray-400 hover:border-white hover:text-white transition-all"
+          >
+            Close
+          </button>
+          <button
+            onClick={onStartQuiz}
+            className="flex-1 py-3 font-bold uppercase border-[3px] bg-[#00E676] text-[#0A0A0A] border-[#00E676] hover:bg-white transition-all"
+          >
+            Start Quiz →
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Main Cyber Page ────────────────────────────────────────────────────────────
 export default function Cyber() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -15,6 +61,7 @@ export default function Cyber() {
   const [leaderboard, setLeaderboard] = useState<any[]>([]);
   const [activeLesson, setActiveLesson] = useState<{ trackId: string; lessonId: number } | null>(null);
   const [activeExam, setActiveExam] = useState<{ trackId: string } | null>(null);
+  const [pendingLesson, setPendingLesson] = useState<{ trackId: string; lessonId: number } | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -52,7 +99,7 @@ export default function Cyber() {
       await supabase.from('cyber_progress').insert([{ user_id: user.id, track_id: trackId, lesson_idx: lessonId, completed_at: new Date().toISOString() }]);
       setProgress([...progress, { track_id: trackId, lesson_idx: lessonId }]);
       setActiveLesson(null);
-      toast({ title: 'Lesson Complete!', description: 'Great work, keep going!' });
+      toast({ title: 'Lesson Complete!', description: 'Stay sharp!' });
     } catch (e) { console.error(e); }
   };
 
@@ -67,11 +114,30 @@ export default function Cyber() {
     } catch (e) { console.error(e); }
   };
 
+  // Notes → Quiz flow
+  if (pendingLesson) {
+    const noteKey = `${pendingLesson.trackId}_${pendingLesson.lessonId}`;
+    const notes = CYBER_LESSON_NOTES[noteKey];
+    if (notes) {
+      return (
+        <LessonNotesModal
+          notes={notes}
+          onStartQuiz={() => { setActiveLesson(pendingLesson); setPendingLesson(null); }}
+          onClose={() => setPendingLesson(null)}
+        />
+      );
+    }
+    setActiveLesson(pendingLesson);
+    setPendingLesson(null);
+  }
+
   if (activeLesson) {
+    const qKey = `${activeLesson.trackId}_${activeLesson.lessonId}`;
+    const questions = CYBER_QUIZ_QUESTIONS[qKey] || CYBER_QUIZ_QUESTIONS['recon_1'];
     return (
       <QuizView
-        questions={MOCK_QUIZ_QUESTIONS}
-        passMark={4}
+        questions={questions}
+        passMark={3}
         bgColor="#030d03"
         accentColor="#00E676"
         onComplete={() => handleLessonComplete(activeLesson.trackId, activeLesson.lessonId)}
@@ -79,11 +145,13 @@ export default function Cyber() {
       />
     );
   }
+
   if (activeExam) {
+    const questions = CYBER_EXAM_QUESTIONS[activeExam.trackId] || CYBER_EXAM_QUESTIONS['recon'];
     return (
       <ExamView
-        questions={MOCK_EXAM_QUESTIONS}
-        durationSeconds={300}
+        questions={questions}
+        durationSeconds={600}
         accentColor="#00E676"
         onComplete={(score) => handleExamComplete(activeExam.trackId, score)}
         onClose={() => setActiveExam(null)}
@@ -97,7 +165,7 @@ export default function Cyber() {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-12">
           <div>
             <h1 className="font-display text-6xl md:text-8xl text-[#00E676] drop-shadow-[4px_4px_0_#0A0A0A]">CYBERSECURITY</h1>
-            <p className="text-xl text-gray-300 font-bold max-w-2xl mt-4">Learn offensive and defensive security. Track your progress, pass exams, and climb the leaderboard.</p>
+            <p className="text-xl text-gray-300 font-bold max-w-2xl mt-4">From recon to CTF. Learn to hack ethically and defend systems.</p>
           </div>
           {!user && (
             <div className="mt-6 md:mt-0 bg-[#0A0A0A] p-4 border-[3px] border-[#00E676]">
@@ -130,39 +198,46 @@ export default function Cyber() {
                   {track.lessons.map((lesson, lIdx) => {
                     const isDone = isLessonComplete(track.id, lesson.id);
                     const isAvailable = lIdx === 0 || isLessonComplete(track.id, track.lessons[lIdx - 1].id);
+                    const noteKey = `${track.id}_${lesson.id}`;
+                    const hasNotes = !!CYBER_LESSON_NOTES[noteKey];
                     return (
-                      <div key={lesson.id} className={`bg-[#0A0A0A] p-6 border-[3px] flex flex-col ${isDone ? 'border-gray-600' : isAvailable ? 'border-[#00E676]' : 'border-gray-800'}`}>
+                      <div key={lesson.id} className={`bg-[#0A1A0A] p-6 border-[3px] flex flex-col ${isDone ? 'border-gray-600' : isAvailable ? 'border-[#00E676]' : 'border-gray-800'}`}>
                         <div className="flex justify-between items-start mb-4">
                           <span className="font-display text-2xl text-gray-400">0{lesson.id}</span>
-                          {isDone && <span className="bg-[#00E676] text-[#0A0A0A] px-2 py-1 text-xs font-bold uppercase">Done</span>}
+                          <div className="flex gap-2 items-center">
+                            {isDone && <span className="bg-[#00E676] text-[#0A0A0A] px-2 py-1 text-xs font-bold uppercase">Done</span>}
+                            {hasNotes && isAvailable && !isDone && (
+                              <span className="bg-[#00E676]/20 text-[#00E676] px-2 py-1 text-xs font-bold uppercase border border-[#00E676]">📚 Notes</span>
+                            )}
+                          </div>
                         </div>
                         <h3 className="font-bold text-xl mb-2 flex-1 text-white">{lesson.title}</h3>
                         <p className="text-gray-400 text-sm mb-6">{lesson.desc}</p>
                         <button
                           disabled={!isAvailable || isDone || !user}
-                          onClick={() => setActiveLesson({ trackId: track.id, lessonId: lesson.id })}
-                          className={`w-full py-3 font-bold uppercase border-[3px] transition-all ${isDone ? 'bg-gray-800 text-gray-500 border-gray-700 cursor-not-allowed' : isAvailable && user ? 'bg-[#FFE500] text-[#0A0A0A] border-[#FFE500] hover:bg-white hover:border-white' : 'bg-gray-800 text-gray-600 border-gray-700 cursor-not-allowed'}`}
+                          onClick={() => setPendingLesson({ trackId: track.id, lessonId: lesson.id })}
+                          className={`w-full py-3 font-bold uppercase border-[3px] transition-all ${isDone ? 'bg-gray-800 text-gray-500 border-gray-700 cursor-not-allowed' : isAvailable && user ? 'bg-[#00E676] text-[#0A0A0A] border-[#00E676] hover:bg-white' : 'bg-gray-800 text-gray-600 border-gray-700 cursor-not-allowed'}`}
                         >
-                          {isDone ? 'Completed' : isAvailable ? 'Start Lesson' : 'Locked'}
+                          {isDone ? '✓ Completed' : isAvailable ? '📖 Study & Quiz' : 'Locked'}
                         </button>
                       </div>
                     );
                   })}
 
                   {/* Exam Card */}
-                  <div className={`bg-[#0A0A0A] p-6 border-[3px] flex flex-col ${examScore !== undefined ? 'border-gray-600' : allLessonsDone ? 'border-[#FFE500]' : 'border-gray-800'}`}>
+                  <div className={`bg-[#0A1A0A] p-6 border-[3px] flex flex-col ${examScore !== undefined ? 'border-gray-600' : allLessonsDone ? 'border-[#FFE500]' : 'border-gray-800'}`}>
                     <div className="flex justify-between items-start mb-4">
                       <span className="font-display text-2xl text-[#FFE500]">FINAL EXAM</span>
                       {examScore !== undefined && <span className="bg-[#00E676] text-[#0A0A0A] px-2 py-1 text-xs font-bold uppercase">Score: {examScore}/10</span>}
                     </div>
                     <h3 className="font-bold text-xl mb-2 flex-1 text-white">Track Certification</h3>
-                    <p className="text-gray-400 text-sm mb-6">10 questions. 5 minutes. Pass to unlock next track.</p>
+                    <p className="text-gray-400 text-sm mb-6">10 questions. 10 minutes. Pass to unlock next track.</p>
                     <button
                       disabled={!allLessonsDone || !user || examScore !== undefined}
                       onClick={() => setActiveExam({ trackId: track.id })}
                       className={`w-full py-3 font-bold uppercase border-[3px] transition-all ${examScore !== undefined ? 'bg-gray-800 text-gray-500 border-gray-700 cursor-not-allowed' : allLessonsDone && user ? 'bg-[#00E676] text-[#0A0A0A] border-[#00E676] hover:bg-[#FFE500] hover:border-[#FFE500]' : 'bg-gray-800 text-gray-600 border-gray-700 cursor-not-allowed'}`}
                     >
-                      {examScore !== undefined ? `Passed — ${examScore}/10` : allLessonsDone ? 'Take Exam' : 'Finish Lessons First'}
+                      {examScore !== undefined ? `✓ Passed — ${examScore}/10` : allLessonsDone ? 'Take Exam' : 'Finish Lessons First'}
                     </button>
                   </div>
                 </div>
@@ -174,9 +249,9 @@ export default function Cyber() {
         {/* Leaderboard */}
         <div className="mt-24">
           <h2 className="font-display text-5xl text-white mb-8 border-b-[3px] border-gray-800 pb-4">TOP HACKERS</h2>
-          <div className="bg-[#0A0A0A] border-[3px] border-gray-800 overflow-hidden">
+          <div className="bg-[#0A1A0A] border-[3px] border-gray-800 overflow-hidden">
             <table className="w-full text-left">
-              <thead className="bg-gray-900 border-b-[3px] border-gray-800">
+              <thead className="bg-[#0d1a0d] border-b-[3px] border-gray-800">
                 <tr>
                   <th className="p-4 font-display text-xl text-white">Rank</th>
                   <th className="p-4 font-display text-xl text-white">Hacker</th>
