@@ -1,7 +1,6 @@
 {
-  "buildCommand": "npm install && npm run build",
+  "buildCommand": "pnpm run build",
   "outputDirectory": "dist/public",
-  "framework": null,
   "rewrites": [
     {
       "source": "/(.*)",
